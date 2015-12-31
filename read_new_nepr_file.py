@@ -112,15 +112,6 @@ def read_new_nepr_file(path):
                               )
 
     # define function that combines deg, min, letters into coordinates:
-    # def make_coordinate(degree, minute, letter):
-    #
-    #     return '{:>3}'.format(str(int(degree))) + \
-    #            u'\u00B0' + \
-    #            ' ' + \
-    #            '{:>02}'.format(str(int(minute))) + \
-    #            "' " + \
-    #            str(letter)
-
     def make_coordinate(degree, minute, letter):
         valid_index = degree.dropna().index
 
@@ -131,16 +122,6 @@ def read_new_nepr_file(path):
                "' " + \
                letter[valid_index].astype('str')
 
-    # make_coordinate = np.vectorize(make_coordinate)
-
-    # def make_coordinate_with_index(degree, minute, letter):
-    #     if degree.notnull().sum():
-    #         valid_index = degree.dropna().index
-    #
-    #         return pd.Series(make_coordinate(degree.dropna(), minute.dropna(), letter.dropna()), index=valid_index)
-    #
-    #     return degree
-
     # define function that translates letters-direction into degrees-direction:
     def letters_to_dir(letter):
         all_letters = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
@@ -148,16 +129,6 @@ def read_new_nepr_file(path):
         converter = dict(zip(all_letters, all_dirs))
 
         return float(converter.get(letter, np.nan))     # use a default for undefined keys
-    # letters_to_dir = np.vectorize(letters_to_dir)
-
-    # def letters_to_dir_with_index(letter):
-    #     if letter.notnull().sum():
-    #         valid_index = letter.dropna().index
-    #
-    #         return pd.Series(letters_to_dir(letter.dropna()), index=valid_index)
-    #
-    #     return letter
-
 
     # get the table data
     position_data = pd.read_excel(book, sheetname=2, header=7, engine='xlrd')
