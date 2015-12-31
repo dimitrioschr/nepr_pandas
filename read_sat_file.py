@@ -6,14 +6,14 @@ import xlrd
 def read_sat_file(path):
 
     book = xlrd.open_workbook(path)
-    data = pd.read_excel(book, header=0, engine='xlrd')
+    sat = pd.read_excel(book, header=0, engine='xlrd')
     names = ['Asset name', 'Position date & time', 'Latitude', 'Longitude', 'Average speed', 'Heading', 'Wind speed',
              'Wind direction', 'Wind & swell wave height', 'Wind wave height', 'Swell wave direction',
              'Swell wave height', 'Distance moved']
-    data = data.loc[1:, names]
-    data.columns = ['ship_name', 'utc_datetime', 'latitude', 'longitude', 'obs_speed', 'course', 'wind_speed',
-                    'wind_dir', 'total_wave_height', 'wind_wave_height', 'swell_wave_dir', 'swell_wave_height',
-                    'obs_miles']
+    sat = sat.loc[1:, names]
+    sat.columns = ['ship_name', 'utc_datetime', 'latitude', 'longitude', 'obs_speed', 'course', 'wind_speed',
+                   'wind_dir', 'total_wave_height', 'wind_wave_height', 'swell_wave_dir', 'swell_wave_height',
+                   'obs_miles']
 
     def knots_to_bft(knots):
         bft_thresholds = [1, 3, 6, 10, 16, 21, 27, 33, 40, 47, 55, 63, 69]
@@ -21,11 +21,10 @@ def read_sat_file(path):
             if knots <= bft_thresholds[i]:
                 return i
         return 12
-    knots_to_bft = np.vectorize(knots_to_bft)
 
-    data['wind_bft'] = knots_to_bft(data.wind_speed.astype('float'))
+    sat['wind_bft'] = sat.wind_speed.astype('float').map(knots_to_bft)
 
-    return data
+    return sat
 
 
 if __name__ == '__main__':
@@ -34,10 +33,10 @@ if __name__ == '__main__':
 
     pd.set_option('display.width', 160)
     path = 'C:\\py\\nepr\\all_vsl_sat.xlsx'
-    data = read_sat_file(path)
-    print(data[(data.ship_name == 'PHOENIX RISING') &
-               (data.utc_datetime <= np.datetime64('2015-11-21')) &
-               (data.utc_datetime >= np.datetime64('2015-11-17'))])
+    sat = read_sat_file(path)
+    print(sat[(sat.ship_name == 'PHOENIX RISING') &
+              (sat.utc_datetime <= np.datetime64('2015-11-21')) &
+              (sat.utc_datetime >= np.datetime64('2015-11-17'))])
 
 
 
