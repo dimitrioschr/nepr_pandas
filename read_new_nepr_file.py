@@ -112,23 +112,34 @@ def read_new_nepr_file(path):
                               )
 
     # define function that combines deg, min, letters into coordinates:
-    def make_coordinate(degree, minute, letter):
+    # def make_coordinate(degree, minute, letter):
+    #
+    #     return '{:>3}'.format(str(int(degree))) + \
+    #            u'\u00B0' + \
+    #            ' ' + \
+    #            '{:>02}'.format(str(int(minute))) + \
+    #            "' " + \
+    #            str(letter)
 
-        return '{:>3}'.format(str(int(degree))) + \
+    def make_coordinate(degree, minute, letter):
+        valid_index = degree.dropna().index
+
+        return degree[valid_index].astype('int').astype('str').map('{:>3}'.format) + \
                u'\u00B0' + \
                ' ' + \
-               '{:>02}'.format(str(int(minute))) + \
+               minute[valid_index].astype('int').astype('str').map('{:>02}'.format) + \
                "' " + \
-               str(letter)
-    make_coordinate = np.vectorize(make_coordinate)
+               letter[valid_index].astype('str')
 
-    def make_coordinate_with_index(degree, minute, letter):
-        if degree.notnull().sum():
-            valid_index = degree.dropna().index
+    # make_coordinate = np.vectorize(make_coordinate)
 
-            return pd.Series(make_coordinate(degree.dropna(), minute.dropna(), letter.dropna()), index=valid_index)
-
-        return degree
+    # def make_coordinate_with_index(degree, minute, letter):
+    #     if degree.notnull().sum():
+    #         valid_index = degree.dropna().index
+    #
+    #         return pd.Series(make_coordinate(degree.dropna(), minute.dropna(), letter.dropna()), index=valid_index)
+    #
+    #     return degree
 
     # define function that translates letters-direction into degrees-direction:
     def letters_to_dir(letter):
@@ -136,16 +147,16 @@ def read_new_nepr_file(path):
         all_dirs = [0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5]
         converter = dict(zip(all_letters, all_dirs))
 
-        return float(converter[letter])
-    letters_to_dir = np.vectorize(letters_to_dir)
+        return float(converter.get(letter, np.nan))     # use a default for undefined keys
+    # letters_to_dir = np.vectorize(letters_to_dir)
 
-    def letters_to_dir_with_index(letter):
-        if letter.notnull().sum():
-            valid_index = letter.dropna().index
-
-            return pd.Series(letters_to_dir(letter.dropna()), index=valid_index)
-
-        return letter
+    # def letters_to_dir_with_index(letter):
+    #     if letter.notnull().sum():
+    #         valid_index = letter.dropna().index
+    #
+    #         return pd.Series(letters_to_dir(letter.dropna()), index=valid_index)
+    #
+    #     return letter
 
 
     # get the table data
@@ -158,12 +169,12 @@ def read_new_nepr_file(path):
     position_data = position_data.ix[valid_index]
     position_data['local_datetime'] = make_datetime(position_data['Local Date'], position_data['Local Time'])
     position_data['utc_datetime'] = make_datetime(position_data['UTC      Date'], position_data['UTC Time'])
-    position_data['latitude'] = make_coordinate_with_index(position_data['Lat - Deg.'],
-                                                           position_data['Lat - Min.'],
-                                                           position_data['   Lat -   N/S'])
-    position_data['longitude'] = make_coordinate_with_index(position_data['Long - Deg.'],
-                                                            position_data['Long - Min.'],
-                                                            position_data['Long - E/W'])
+    position_data['latitude'] = make_coordinate(position_data['Lat - Deg.'],
+                                                position_data['Lat - Min.'],
+                                                position_data['   Lat -   N/S'])
+    position_data['longitude'] = make_coordinate(position_data['Long - Deg.'],
+                                                 position_data['Long - Min.'],
+                                                 position_data['Long - E/W'])
     position_data['eta_datetime'] = make_datetime(position_data['ETA      Date'], position_data['ETA     Time'])
     position_names = ['local_datetime', 'utc_datetime', 'latitude', 'longitude', 'Course       (O)',
                       'Chrtrs Sailing Instruct.', 'RPM', 'M/E           Load', 'eta_datetime',
@@ -187,10 +198,10 @@ def read_new_nepr_file(path):
                             'curr_dir_rel', 'wind_wave_height', 'wind_wave_dir_letter', 'wind_wave_dir_rel',
                             'swell_wave_height', 'swell_wave_dir_letter', 'swell_wave_dir_rel', 'gwd_ind',
                             'remarks_weather']
-    weather_data['wind_dir'] = letters_to_dir_with_index(weather_data.wind_dir_letter)
-    weather_data['curr_dir'] = letters_to_dir_with_index(weather_data.curr_dir_letter)
-    weather_data['wind_wave_dir'] = letters_to_dir_with_index(weather_data.wind_wave_dir_letter)
-    weather_data['swell_wave_dir'] = letters_to_dir_with_index(weather_data.swell_wave_dir_letter)
+    weather_data['wind_dir'] = weather_data.wind_dir_letter.map(letters_to_dir)
+    weather_data['curr_dir'] = weather_data.curr_dir_letter.map(letters_to_dir)
+    weather_data['wind_wave_dir'] = weather_data.wind_wave_dir_letter.map(letters_to_dir)
+    weather_data['swell_wave_dir'] = weather_data.swell_wave_dir_letter.map(letters_to_dir)
 
     # for bunkers_data:
     bunkers_data = pd.read_excel(book, sheetname=4, header=1, parse_cols=list(range(0, 28)), engine='xlrd').ix[valid_index]
